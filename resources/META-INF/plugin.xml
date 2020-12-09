@@ -1,0 +1,52 @@
+<idea-plugin>
+  <id>com.metalogic.guano-code-analyzer</id>
+  <name>Guano Code Analyzer</name>
+  <version>1.0</version>
+  <vendor email="no-mail@no-company.com" url="http://www.nocompany.com">No Company</vendor>
+
+  <description>
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+    blah
+  </description>
+
+  <change-notes><![CDATA[
+  no notes
+    ]]>
+  </change-notes>
+
+  <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="173.0"/>
+
+  <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.java</depends>
+
+  <project-components>
+    <component>
+      <implementation-class>com.metalogic.cat.CodeAnalysisToolsPlugin</implementation-class>
+      <interface-class>com.metalogic.cat.CodeAnalysisToolsPlugin</interface-class>
+    </component>
+  </project-components>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+  </actions>
+
+</idea-plugin>
