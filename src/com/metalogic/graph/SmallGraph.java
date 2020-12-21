@@ -10,14 +10,14 @@ public class SmallGraph /*extends NodeList */{
 
     public SmallGraph () { }
 
-    public SmallGraph (List<Node> nodes) { this.rootNodes = nodes; }
+    public SmallGraph (List<? extends Node<?>> rootNodes) { this.rootNodes = new ArrayList<>(rootNodes); }
 
 
-    private List<Node> visitedNodes;    // TODO: replace by Set! (don't forget equals ()and hashCode())
-    private List<Node> rootNodes = new ArrayList<Node>();   // TODO: replace by Set! (don't forget equals ()and hashCode())
-    private List<Node> auxilliaryNodes = new ArrayList<Node>(); // TODO: replace by Set! (don't forget equals ()and hashCode())
+    private List<Node<?>> visitedNodes;    // TODO: replace by Set! (don't forget equals ()and hashCode())
+    private List<Node<?>> rootNodes = new ArrayList<>();   // TODO: replace by Set! (don't forget equals ()and hashCode())
+    private List<Node<?>> auxilliaryNodes = new ArrayList<>(); // TODO: replace by Set! (don't forget equals ()and hashCode())
 
-    protected void addRootNode(Node node) {
+    protected void addRootNode(Node<?> node) {
         rootNodes.add(node);
     }
 
@@ -29,7 +29,7 @@ public class SmallGraph /*extends NodeList */{
 
     protected JComponent ui(List<Node<?>> path) {
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
-        visitedNodes = new ArrayList<Node>();
+        visitedNodes = new ArrayList<>();
 
         final Box horizontalBox = Box.createHorizontalBox();
         horizontalBox.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
@@ -75,7 +75,7 @@ public class SmallGraph /*extends NodeList */{
      * Recursive
      */
     private void process(NodeList start, Box[] verticalBoxes, SmallGraph graphParent) {
-        List<Node> nodeList = start.getReferencedNodes();
+        List<Node<?>> nodeList = start.getReferencedNodes();
 
         for (Node node : nodeList) {
 //            System.out.println("processing node " + node);

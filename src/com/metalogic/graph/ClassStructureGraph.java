@@ -22,6 +22,8 @@ import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.search.LocalSearchScope;
 import com.intellij.psi.search.searches.OverridingMethodsSearch;
 import com.intellij.psi.search.searches.ReferencesSearch;
+import com.metalogic.graph3.DisjointSetUnion;
+import one.util.streamex.StreamEx;
 
 
 public class ClassStructureGraph extends NodeList {
@@ -41,6 +43,8 @@ public class ClassStructureGraph extends NodeList {
     private Box panel;
     private final boolean includeConstructors;
 
+    private final DisjointSetUnion<PsiNamedElement> dsu = new DisjointSetUnion<>();
+
 
     public ClassStructureGraph(PsiClass psiClass, boolean includeConstructors) {
         this.psiClass = psiClass;
@@ -54,7 +58,9 @@ public class ClassStructureGraph extends NodeList {
                 addMethod(method);
             }
         }
-        for (final PsiField field : psiClass.getFields()) addField(field);
+        for (final PsiField field : psiClass.getFields()) {
+            addField(field);
+        }
 
         for (final PsiMethod method : psiClass.getMethods()) {
             if (includeMethod(method)) {
@@ -63,6 +69,8 @@ public class ClassStructureGraph extends NodeList {
             }
         }
         for (final PsiField field : psiClass.getFields()) processReferencesTo(field, localSearchScope);
+
+        dsu.disjointSets();
     }
 
 
@@ -73,6 +81,7 @@ public class ClassStructureGraph extends NodeList {
 
         referencedNodes.add(node);
         element2node.put(method, node);
+        dsu.add(method);
     }
 
 
@@ -80,6 +89,7 @@ public class ClassStructureGraph extends NodeList {
         final FieldNode node = new FieldNode(field);
         referencedNodes.add(node);
         element2node.put(field, node);
+        dsu.add(field);
     }
 
 
@@ -96,6 +106,8 @@ public class ClassStructureGraph extends NodeList {
                 processReferencesTo(callingMethod, localSearchScope);
                 LOGGER.warn(">> processReferencesTo " + callingMethod);
                 addLink(callingMethod, element);
+
+                dsu.merge(element, callingMethod);
             }
         }
     }
@@ -158,6 +170,27 @@ public class ClassStructureGraph extends NodeList {
         LOGGER.debug("===============================================");
     }
 
+
+    private void scanForRootNodes() {
+        findRootNodes(referencedNodes, rootNodes);
+    }
+
+    private List<Node<?>> rootNodes(List<? extends Node<?>> nodes) {
+        ArrayList<Node<?>> result = new ArrayList<>();
+        findRootNodes(nodes, result);
+        return result;
+    }
+
+    private void findRootNodes(List<? extends Node<?>> nodes, List<Node<?>> rootNodes) {
+        LOGGER.debug("==== COLLECTING ROOT NODES");
+        for (Node<?> node : nodes) {
+            if (node.isRoot()) {
+                LOGGER.warn("FOUND ROOT NODE " + node);
+                rootNodes.add(node);
+            }
+        }
+    }
+
     private void scanForRecursions() {
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
         visitedNodes = new ArrayList<>();
@@ -167,17 +200,7 @@ public class ClassStructureGraph extends NodeList {
     }
 
 
-    private void scanForRootNodes() {
-        LOGGER.debug("==== COLLECTING ROOT NODES");
-        for (Node<?> node : referencedNodes) {
-            if (node.isRoot()) {
-                LOGGER.debug("ADDED ROOT NODE " + node);
-                rootNodes.add(node);
-            }
-        }
-    }
-
-    private void scanForGraphs() {
+    private void scanForGraphs0() {
         LOGGER.debug("==== SCANNING GRAPHS");
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
         visitedNodes = new ArrayList<>();
@@ -190,8 +213,25 @@ public class ClassStructureGraph extends NodeList {
             final SmallGraph owner = findOwnerGraph(rootNode);
             LOGGER.debug("Setting owner " + owner + " to root node " + rootNode);
             owner.addRootNode(rootNode);
-            rootNode.assignOwner(owner, visitedNodes2, 0);
+            rootNode.assignOwnerAndComputeDepths(owner, visitedNodes2, 0);
         }
+    }
+
+    private void scanForGraphs() {
+        LOGGER.warn("==== SCANNING GRAPHS");
+        for (List<PsiNamedElement> subGraphElements : dsu.disjointSets()) {
+            List<? extends Node<?>> nodes = nodes(subGraphElements);
+            List<? extends Node<?>> rootNodes = rootNodes(nodes);
+            LOGGER.warn("Root nodes: " + rootNodes);
+            final SmallGraph smallGraph = new SmallGraph(rootNodes);
+            smallGraphs.add(smallGraph);
+            rootNodes.forEach(rootNode -> rootNode.assignOwnerAndComputeDepths(smallGraph, new ArrayList<>(), 0));
+        }
+        LOGGER.warn("==== SCANNING GRAPHS DONE");
+    }
+
+    private List<? extends Node<?>> nodes(List<PsiNamedElement> elements) {
+        return StreamEx.of(elements).map(element2node::get).toList();
     }
 
 

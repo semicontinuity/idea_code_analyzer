@@ -69,7 +69,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     }
 
 
-    protected void assignOwner(SmallGraph owner, List<Node<?>> visitedNodes2, int depth) {
+    protected void assignOwnerAndComputeDepths(SmallGraph owner, List<Node<?>> visitedNodes2, int depth) {
         LOGGER.debug("Going to assign owner " + owner + " (recursively) to " + this);
         if (visitedNodes2.contains(this)) {
             LOGGER.debug("Owner already assigned");
@@ -91,7 +91,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         }
 
         for (Node<?> referenced : getReferencedNodes()) {
-            referenced.assignOwner(owner, visitedNodes2, depth + 1);
+            referenced.assignOwnerAndComputeDepths(owner, visitedNodes2, depth + 1);
         }
     }
 
@@ -106,7 +106,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         if (isTerminal()) return owner;
 
         LOGGER.debug("I am not terminal node, scanning references");
-        for (Node referenced : getReferencedNodes()) {
+        for (Node<?> referenced : getReferencedNodes()) {
             SmallGraph owner = referenced.findOwnerGraph(visitedNodes);
             if (owner != null) {
                 LOGGER.debug("Found owner!!!");
@@ -116,7 +116,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         return null;
     }
 
-    protected void scanForRecursions(final LinkedList<Node> path) {
+    protected void scanForRecursions(final LinkedList<Node<?>> path) {
         LOGGER.debug("Visiting " + this);
         if (path.contains(this)) {
             LOGGER.debug("Recursion detected!");
@@ -132,7 +132,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         path.removeLast();
     }
 
-    private void addRecursivePath(final LinkedList<Node> path) {
+    private void addRecursivePath(final LinkedList<Node<?>> path) {
         final int start = path.indexOf(this);
         LOGGER.debug("RECURSIVE PATH PART:");
         for (int i = start; i < path.size(); i++) {
@@ -145,9 +145,6 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         return depth;
     }
 
-    /**
-     * @return
-     */
     private boolean isTerminal() {
         return referencedNodes.size() == 0;
     }
