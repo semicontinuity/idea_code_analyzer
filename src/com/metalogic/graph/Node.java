@@ -1,5 +1,6 @@
 package com.metalogic.graph;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,8 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     boolean hasOverridingMethods;
     boolean hasSuperMethods;
 
+    private final Set<Node<?>> incomingReferences = new HashSet<>();
+
 
     protected Node(final E psiElement) {
         this.psiElement = psiElement;
@@ -36,8 +39,11 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         referencedNodes.add(referencedNode);
     }
 
-    protected void incReferenceCount() {
-        ++referenceCount;
+    protected void incReferenceCount(Node<?> sourceNode) {
+        if (incomingReferences.add(sourceNode)) {
+            LOGGER.warn("REF to " + this + " FROM " + sourceNode);
+            ++referenceCount;
+        }
     }
 
 
@@ -45,6 +51,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
 
 
     protected JComponent makeHorizontalBox(ElementButton nodeButton, SmallGraph graphParent, List<Node<?>> path) {
+        LOGGER.warn("Making horizontal box for " + this);
         final Box horizontalBox = Box.createHorizontalBox();
         horizontalBox.add(nodeButton);
 
@@ -54,15 +61,19 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         }
 
         horizontalBox.add(Box.createHorizontalGlue());
+        LOGGER.warn("Done making horizontal box for " + this);
         return horizontalBox;
     }
 
+    /**
+     * @param path is used to stop recursions
+     */
     private Box makeVerticalBox(SmallGraph graphParent, List<Node<?>> path) {
+        LOGGER.warn("Making vertical box for nodes referenced by " + this + ": " + referencedNodes);
         final Box verticalBox = Box.createVerticalBox();
         for (Node node : referencedNodes) { // we don't go deeper...
-            if (/*node.getReferenceCount() > 1*/ node.getReferenceCount()
-                    - node.getRecursiveIncomingArcsCount() > 1) {
-                LOGGER.debug("Found >2ref node = " + node);
+            if (/*node.getReferenceCount() > 1*/ node.getReferenceCount() - node.getRecursiveIncomingArcsCount() > 1) {
+                LOGGER.warn("Found >2ref node = " + node);
                 graphParent.addAuxilliaryNode(node);
                 continue;
             }
@@ -70,9 +81,12 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
             path.add(this);
             if (!path.contains(node)) {
                 verticalBox.add(node.ui(graphParent, path));
+            } else {
+                LOGGER.warn("Node " + node + " is recursive and was already rendered");
             }
             path.remove(path.size() - 1);
         }
+        LOGGER.warn("Done making vertical box for nodes referenced by " + this + ": " + referencedNodes);
         return verticalBox;
     }
 

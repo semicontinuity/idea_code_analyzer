@@ -138,7 +138,7 @@ public class ClassStructureGraph extends NodeList {
         LOGGER.warn(sourceNode.toString() + ":" + sourceNode.getClass() + "->" + targetNode.toString() + ":" + targetNode.getClass());
 
         sourceNode.addReferencedNode(targetNode);
-        targetNode.incReferenceCount();
+        targetNode.incReferenceCount(sourceNode);
     }
 
 

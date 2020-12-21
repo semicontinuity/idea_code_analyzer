@@ -1,30 +1,37 @@
 package com.metalogic.graph;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.border.BevelBorder;
 
+import com.intellij.openapi.diagnostic.Logger;
+
 public class SmallGraph /*extends NodeList */{
+    public static final Logger LOGGER = Logger.getInstance(SmallGraph.class);
 
     public SmallGraph () { }
 
-    public SmallGraph (List<? extends Node<?>> rootNodes) { this.rootNodes = new ArrayList<>(rootNodes); }
+    public SmallGraph (Collection<? extends Node<?>> rootNodes) { this.rootNodes = new HashSet<>(rootNodes); }
 
 
-    private List<Node<?>> rootNodes = new ArrayList<>();   // TODO: replace by Set! (don't forget equals ()and hashCode())
-    private List<Node<?>> auxilliaryNodes = new ArrayList<>(); // TODO: replace by Set! (don't forget equals ()and hashCode())
+    private Set<Node<?>> rootNodes = new HashSet<>();
+    private Set<Node<?>> auxilliaryNodes = new HashSet<>();
 
     protected void addRootNode(Node<?> node) {
         rootNodes.add(node);
     }
 
     protected void addAuxilliaryNode(Node node) {
-        if (auxilliaryNodes.contains(node)) return;
-        auxilliaryNodes.add(node);
+        if (auxilliaryNodes.add(node)) {
+            LOGGER.warn("Added auxilliaryNode " + node + " to " + this);
+        }
     }
 
 
@@ -33,14 +40,17 @@ public class SmallGraph /*extends NodeList */{
         horizontalBox.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
 
         final Box verticalBox = Box.createVerticalBox();
+        LOGGER.warn("Adding layer 0 for root nodes");
         for (Node rootNode : rootNodes) {
             if (!path.contains(rootNode)) {
+                LOGGER.warn("Adding ui for root node " + rootNode);
                 verticalBox.add(rootNode.ui(this, path));
             }
         }
         horizontalBox.add(verticalBox);
+        LOGGER.warn("Added layer 0 for root nodes");
 
-        if (auxilliaryNodes.size() > 0 && (auxilliaryNodes.size() != rootNodes.size())) {
+        if (auxilliaryNodes.size() > 0/* && (auxilliaryNodes.size() != rootNodes.size())*/) {
 //            Component horizontalStrut = Box.createHorizontalStrut(2);
 //            horizontalStrut.setForeground(Color.YELLOW);
 //            horizontalBox.add(horizontalStrut);
@@ -59,10 +69,12 @@ public class SmallGraph /*extends NodeList */{
 //                classStructureGraph.assignOwnerRecursively(node, null);
 //            }
 //            classStructureGraph.layout();
+            LOGGER.warn("Adding layer for remaining nodes");
             final SmallGraph newGraph = new SmallGraph(auxilliaryNodes);
 //            classStructureGraph.smallGraphs.add(newGraph);
             final List<Node<?>> newpath = new ArrayList<>();
             horizontalBox.add(newGraph.ui(newpath, visitedNodes));
+            LOGGER.warn("Added layer for remaining nodes");
         }
 
         return horizontalBox;
