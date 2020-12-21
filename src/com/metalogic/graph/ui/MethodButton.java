@@ -3,17 +3,26 @@ package com.metalogic.graph.ui;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifierList;
 import com.intellij.util.ui.UIUtil;
+import com.metalogic.graph.MethodNode;
+import com.metalogic.graph.Node;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.function.Consumer;
 
 public class MethodButton extends ElementButton<PsiMethod> {
 
     static ImageIcon classIcon = ElementButton.icon("/nodes/method.png");
 
-    public MethodButton(final PsiMethod psiMethod, boolean hasOverridingMethods, boolean hasSuperMethods) {
-        super(psiMethod);
+    public MethodButton(
+            final PsiMethod psiMethod,
+            boolean hasOverridingMethods,
+            boolean hasSuperMethods,
+            MethodNode methodNode,
+            Consumer<Node<?>> actionConsumer) {
+
+        super(psiMethod, methodNode, actionConsumer);
 
         setText(psiMethod.getName());
 

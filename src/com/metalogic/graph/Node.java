@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import javax.swing.Box;
 import javax.swing.JComponent;
@@ -28,6 +29,9 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     private final Set<Node<?>> incomingReferences = new HashSet<>();
 
 
+    protected ElementButton<?> button;
+
+
     protected Node(final E psiElement) {
         this.psiElement = psiElement;
     }
@@ -47,16 +51,17 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     }
 
 
-    protected abstract JComponent ui(final SmallGraph graphParent, List<Node<?>> path);
+    protected abstract JComponent ui(final SmallGraph graphParent, List<Node<?>> path, Consumer<Node<?>> nodeConsumer);
 
 
-    protected JComponent makeHorizontalBox(ElementButton nodeButton, SmallGraph graphParent, List<Node<?>> path) {
+    protected JComponent makeHorizontalBox(ElementButton nodeButton, SmallGraph graphParent, List<Node<?>> path,
+                                           Consumer<Node<?>> actionConsumer) {
         LOGGER.warn("Making horizontal box for " + this);
         final Box horizontalBox = Box.createHorizontalBox();
         horizontalBox.add(nodeButton);
 
         if (referencedNodes.size() > 0) {
-            final Box verticalBox = makeVerticalBox(graphParent, path);
+            final Box verticalBox = makeVerticalBox(graphParent, path, actionConsumer);
             horizontalBox.add(verticalBox);
         }
 
@@ -68,7 +73,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     /**
      * @param path is used to stop recursions
      */
-    private Box makeVerticalBox(SmallGraph graphParent, List<Node<?>> path) {
+    private Box makeVerticalBox(SmallGraph graphParent, List<Node<?>> path, Consumer<Node<?>> actionConsumer) {
         LOGGER.warn("Making vertical box for nodes referenced by " + this + ": " + referencedNodes);
         final Box verticalBox = Box.createVerticalBox();
         for (Node node : referencedNodes) { // we don't go deeper...
@@ -80,7 +85,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
 
             path.add(this);
             if (!path.contains(node)) {
-                verticalBox.add(node.ui(graphParent, path));
+                verticalBox.add(node.ui(graphParent, path, actionConsumer));
             } else {
                 LOGGER.warn("Node " + node + " is recursive and was already rendered");
             }
@@ -186,6 +191,10 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
 
     private int getRecursiveIncomingArcsCount() {
         return recursiveIncomingArcsCount;
+    }
+
+    public void select() {
+        button.select();
     }
 }
 

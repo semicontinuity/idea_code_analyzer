@@ -6,6 +6,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiNamedElement;
+import com.metalogic.graph.MethodNode;
+import com.metalogic.graph.Node;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -15,12 +17,17 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.function.Consumer;
 
 public abstract class ElementButton<E extends PsiNamedElement> extends JButton implements ActionListener {
     protected E psiElement;
+    protected Node<?> node;
+    protected Consumer<Node<?>> actionConsumer;
 
-    public ElementButton(final E element) {
+    protected ElementButton(final E element, Node<?> node, Consumer<Node<?>> actionConsumer) {
         psiElement = element;
+        this.node = node;
+        this.actionConsumer = actionConsumer;
         addActionListener(this);
         setBorder(BorderFactory.createEmptyBorder());
     }
@@ -37,12 +44,21 @@ public abstract class ElementButton<E extends PsiNamedElement> extends JButton i
     public void actionPerformed(ActionEvent e) {
         if (psiElement == null) return;
 //            final int endOffset = method.getBody().getLBrace().getTextRange().getEndOffset();
+        actionConsumer.accept(node);
         TextRange textRange = psiElement.getTextRange();
         final int endOffset = textRange.getStartOffset();
         final Project project = psiElement.getProject();
         final VirtualFile virtualFile = psiElement.getContainingFile().getVirtualFile();
         FileEditorManager.getInstance(project).openTextEditor(
                 new OpenFileDescriptor(project, virtualFile, endOffset), true);
+    }
+
+    public void select() {
+        setBackground(Color.ORANGE);
+    }
+
+    public void deselect() {
+        setBackground(Color.LIGHT_GRAY);
     }
 
 

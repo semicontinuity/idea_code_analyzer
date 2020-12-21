@@ -41,10 +41,13 @@ public class SmallGraph /*extends NodeList */{
 
         final Box verticalBox = Box.createVerticalBox();
         LOGGER.warn("Adding layer 0 for root nodes");
-        for (Node rootNode : rootNodes) {
+        for (Node<?> rootNode : rootNodes) {
             if (!path.contains(rootNode)) {
                 LOGGER.warn("Adding ui for root node " + rootNode);
-                verticalBox.add(rootNode.ui(this, path));
+                verticalBox.add(rootNode.ui(this, path, node -> {
+                    LOGGER.warn("*** ACTION " + node);
+                    node.select();
+                }));
             }
         }
         horizontalBox.add(verticalBox);
