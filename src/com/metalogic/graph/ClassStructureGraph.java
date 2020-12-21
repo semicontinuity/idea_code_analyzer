@@ -3,6 +3,7 @@ package com.metalogic.graph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -145,18 +146,16 @@ public class ClassStructureGraph extends NodeList {
         if (panel != null) return panel;
         layout();
 
-        LOGGER.debug("===============================================");
-        LOGGER.debug("CREATING NEW ClassStructuregraph UI");
+        LOGGER.warn("===============================================");
+        LOGGER.warn("CREATING UI");
         panel = Box.createVerticalBox();
-        LOGGER.debug("Adding " + smallGraphs.size() + " sub-graphs");
-
+        LOGGER.warn("Adding " + smallGraphs.size() + " sub-graphs");
 
         for (SmallGraph smallGraph : smallGraphs) {
-            final ArrayList<Node<?>> path = new ArrayList<>();
-            panel.add(smallGraph.ui(path));
+            panel.add(smallGraph.ui(new ArrayList<>(), new ArrayList<>()));
         }
-//        panel.add(Box.createVerticalGlue());
-        LOGGER.debug("===============================================");
+
+        LOGGER.warn("===============================================");
         return panel;
     }
 
@@ -213,7 +212,7 @@ public class ClassStructureGraph extends NodeList {
             final SmallGraph owner = findOwnerGraph(rootNode);
             LOGGER.debug("Setting owner " + owner + " to root node " + rootNode);
             owner.addRootNode(rootNode);
-            rootNode.assignOwnerAndComputeDepths(owner, visitedNodes2, 0);
+            rootNode.assignOwnerAndComputeDepths(owner, new HashSet<>(), 0);
         }
     }
 
@@ -225,7 +224,7 @@ public class ClassStructureGraph extends NodeList {
             LOGGER.warn("Root nodes: " + rootNodes);
             final SmallGraph smallGraph = new SmallGraph(rootNodes);
             smallGraphs.add(smallGraph);
-            rootNodes.forEach(rootNode -> rootNode.assignOwnerAndComputeDepths(smallGraph, new ArrayList<>(), 0));
+            rootNodes.forEach(rootNode -> rootNode.assignOwnerAndComputeDepths(smallGraph, new HashSet<>(), 0));
         }
         LOGGER.warn("==== SCANNING GRAPHS DONE");
     }

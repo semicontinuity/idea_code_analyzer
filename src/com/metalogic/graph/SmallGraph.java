@@ -1,10 +1,12 @@
 package com.metalogic.graph;
 
-import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.JComponent;
+import javax.swing.border.BevelBorder;
 
 public class SmallGraph /*extends NodeList */{
 
@@ -13,7 +15,6 @@ public class SmallGraph /*extends NodeList */{
     public SmallGraph (List<? extends Node<?>> rootNodes) { this.rootNodes = new ArrayList<>(rootNodes); }
 
 
-    private List<Node<?>> visitedNodes;    // TODO: replace by Set! (don't forget equals ()and hashCode())
     private List<Node<?>> rootNodes = new ArrayList<>();   // TODO: replace by Set! (don't forget equals ()and hashCode())
     private List<Node<?>> auxilliaryNodes = new ArrayList<>(); // TODO: replace by Set! (don't forget equals ()and hashCode())
 
@@ -27,10 +28,7 @@ public class SmallGraph /*extends NodeList */{
     }
 
 
-    protected JComponent ui(List<Node<?>> path) {
-        if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
-        visitedNodes = new ArrayList<>();
-
+    protected JComponent ui(List<Node<?>> path, ArrayList<Node<?>> visitedNodes) {
         final Box horizontalBox = Box.createHorizontalBox();
         horizontalBox.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
 
@@ -64,53 +62,9 @@ public class SmallGraph /*extends NodeList */{
             final SmallGraph newGraph = new SmallGraph(auxilliaryNodes);
 //            classStructureGraph.smallGraphs.add(newGraph);
             final List<Node<?>> newpath = new ArrayList<>();
-            horizontalBox.add(newGraph.ui(newpath));
+            horizontalBox.add(newGraph.ui(newpath, visitedNodes));
         }
 
         return horizontalBox;
-    }
-
-
-    /**
-     * Recursive
-     */
-    private void process(NodeList start, Box[] verticalBoxes, SmallGraph graphParent) {
-        List<Node<?>> nodeList = start.getReferencedNodes();
-
-        for (Node node : nodeList) {
-//            System.out.println("processing node " + node);
-            if (visitedNodes.contains(node)) {
-//                System.out.println("was processed!");
-                return;
-            }
-            visitedNodes.add(node);
-
-//            final int depth = node.getDepth();
-//            Box box = verticalBoxes[depth];
-//            if (box == null) {
-//                System.out.println("Creating new smallGraphUI!");
-//                box = Box.createVerticalBox();
-//                verticalBoxes[depth] = box;
-//                System.out.println("And assinging to depth " + depth);
-//            }
-//
-//            box.add(new MyButton(node));
-//
-//            process(node, verticalBoxes, null);
-
-
-            final int depth = node.getDepth();
-            Box box = verticalBoxes[depth];
-            if (box == null) {
-//                System.out.println("Creating new smallGraphUI!");
-                box = Box.createVerticalBox();
-                verticalBoxes[depth] = box;
-//                System.out.println("And assinging to depth " + depth);
-            }
-
-//            box.add(new MyButton(node));
-
-            process(node, verticalBoxes, null);
-        }
     }
 }

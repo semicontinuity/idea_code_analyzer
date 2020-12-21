@@ -1,16 +1,19 @@
 package com.metalogic.graph;
 
-import com.intellij.psi.PsiNamedElement;
-import com.metalogic.graph.ui.ElementButton;
-import org.apache.log4j.Logger;
-
-import javax.swing.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+
+import javax.swing.Box;
+import javax.swing.JComponent;
+
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiNamedElement;
+import com.metalogic.graph.ui.ElementButton;
 
 
 public abstract class Node<E extends PsiNamedElement> extends NodeList {
-    public static final Logger LOGGER = Logger.getLogger(Node.class);
+    public static final com.intellij.openapi.diagnostic.Logger LOGGER = Logger.getInstance(Node.class);
 
     E psiElement;
     SmallGraph owner;
@@ -41,26 +44,12 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     protected abstract JComponent ui(final SmallGraph graphParent, List<Node<?>> path);
 
 
-    JComponent box(SmallGraph graphParent, List<Node<?>> path, ElementButton myButton) {
+    protected JComponent makeHorizontalBox(ElementButton nodeButton, SmallGraph graphParent, List<Node<?>> path) {
         final Box horizontalBox = Box.createHorizontalBox();
-        horizontalBox.add(myButton);
+        horizontalBox.add(nodeButton);
 
         if (referencedNodes.size() > 0) {
-            final Box verticalBox = Box.createVerticalBox();
-            for (Node node : referencedNodes) { // we don't go deeper...
-                if (/*node.getReferenceCount() > 1*/ node.getReferenceCount()
-                        - node.getRecursiveIncomingArcsCount() > 1) {
-                    LOGGER.debug("Found >2ref node = " + node);
-                    graphParent.addAuxilliaryNode(node);
-                    continue;
-                }
-
-                path.add(this);
-                if (!path.contains(node)) {
-                    verticalBox.add(node.ui(graphParent, path));
-                }
-                path.remove(path.size() - 1);
-            }
+            final Box verticalBox = makeVerticalBox(graphParent, path);
             horizontalBox.add(verticalBox);
         }
 
@@ -68,23 +57,42 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         return horizontalBox;
     }
 
+    private Box makeVerticalBox(SmallGraph graphParent, List<Node<?>> path) {
+        final Box verticalBox = Box.createVerticalBox();
+        for (Node node : referencedNodes) { // we don't go deeper...
+            if (/*node.getReferenceCount() > 1*/ node.getReferenceCount()
+                    - node.getRecursiveIncomingArcsCount() > 1) {
+                LOGGER.debug("Found >2ref node = " + node);
+                graphParent.addAuxilliaryNode(node);
+                continue;
+            }
 
-    protected void assignOwnerAndComputeDepths(SmallGraph owner, List<Node<?>> visitedNodes2, int depth) {
-        LOGGER.debug("Going to assign owner " + owner + " (recursively) to " + this);
+            path.add(this);
+            if (!path.contains(node)) {
+                verticalBox.add(node.ui(graphParent, path));
+            }
+            path.remove(path.size() - 1);
+        }
+        return verticalBox;
+    }
+
+
+    protected void assignOwnerAndComputeDepths(SmallGraph owner, Set<Node<?>> visitedNodes2, int depth) {
+        if (depth > getDepth()) {
+            this.depth = depth;
+            LOGGER.debug(psiElement.getName() + " depth = " + depth);
+            LOGGER.warn("Set depth of " + this + " to " + this.depth);
+        }
+
         if (visitedNodes2.contains(this)) {
-            LOGGER.debug("Owner already assigned");
+            LOGGER.debug("Node "+ this + " is already visited");
             return;
         }
         visitedNodes2.add(this);
 
-
-        LOGGER.debug("setting owner of " + this + " to " + owner);
+        LOGGER.warn("Setting owner of " + this + " to " + owner);
         this.owner = owner;
 
-        if (depth > getDepth()) {
-            this.depth = depth;
-            LOGGER.debug(psiElement.getName() + " depth = " + depth);
-        }
         if (isTerminal()) {
             LOGGER.debug("Terminal node, returning");
             return;
@@ -94,6 +102,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
             referenced.assignOwnerAndComputeDepths(owner, visitedNodes2, depth + 1);
         }
     }
+
 
     protected SmallGraph findOwnerGraph(final List<Node<?>> visitedNodes) {
         if (visitedNodes.contains(this)) {
