@@ -1,72 +1,105 @@
 package com.metalogic.graph;
 
-import com.intellij.psi.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.Box;
+import javax.swing.JComponent;
+
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiNamedElement;
+import com.intellij.psi.PsiReference;
+import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.search.LocalSearchScope;
 import com.intellij.psi.search.searches.OverridingMethodsSearch;
 import com.intellij.psi.search.searches.ReferencesSearch;
-//import com.intellij.util.containers.HashMap;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
-import javax.swing.*;
-import java.util.*;
 
 public class ClassStructureGraph extends NodeList {
 
-    public static final Logger LOGGER = Logger.getLogger(ClassStructureGraph.class);
-    static {
-        LOGGER.setLevel(Level.DEBUG);
-    }
+    public static final Logger LOGGER = Logger.getInstance(ClassStructureGraph.class);
 
-    private List<Node> rootNodes = new ArrayList<Node>();
-    protected List<SmallGraph> smallGraphs = new ArrayList<SmallGraph>();
-    private Map<PsiNamedElement, Node> element2node = new HashMap<PsiNamedElement, Node>();
+    private final PsiClass psiClass;
 
-    private List<Node> visitedNodes;
-    private List<Node> visitedNodes2;
+    private final List<Node<?>> rootNodes = new ArrayList<>();
+    private final Map<PsiNamedElement, Node<?>> element2node = new HashMap<>();
+
+    private final List<SmallGraph> smallGraphs = new ArrayList<>();
+
+    private List<Node<?>> visitedNodes;
+    private List<Node<?>> visitedNodes2;
 
     private Box panel;
+    private final boolean includeConstructors;
 
 
-    public void init(PsiClass psiClass) {
+    public ClassStructureGraph(PsiClass psiClass, boolean includeConstructors) {
+        this.psiClass = psiClass;
+        this.includeConstructors = includeConstructors;
+
         final LocalSearchScope localSearchScope = new LocalSearchScope(psiClass);
 
-        for (final PsiMethod method : psiClass.getMethods()) addMethod(method);
+        for (final PsiMethod method : psiClass.getMethods()) {
+            if (includeMethod(method)) {
+                LOGGER.warn("addMethod " + method);
+                addMethod(method);
+            }
+        }
         for (final PsiField field : psiClass.getFields()) addField(field);
 
-        for (final PsiMethod method : psiClass.getMethods()) processReferencesTo(psiClass, method, localSearchScope);
-        for (final PsiField field : psiClass.getFields()) processReferencesTo(psiClass, field, localSearchScope);
+        for (final PsiMethod method : psiClass.getMethods()) {
+            if (includeMethod(method)) {
+                LOGGER.warn("processReferencesTo " + method);
+                processReferencesTo(method, localSearchScope);
+            }
+        }
+        for (final PsiField field : psiClass.getFields()) processReferencesTo(field, localSearchScope);
     }
 
 
     void addMethod(final PsiMethod method) {
-        final MethodNode methodNode = new MethodNode(method);
-        methodNode.setHasOverridingMethods(OverridingMethodsSearch.search(method).findAll().size() > 0);
-        methodNode.setHasSuperMethods(method.findSuperMethods().length > 0);
+        final MethodNode node = new MethodNode(method);
+        node.setHasOverridingMethods(OverridingMethodsSearch.search(method).findAll().size() > 0);
+        node.setHasSuperMethods(method.findSuperMethods().length > 0);
 
-        referencedNodes.add(methodNode);
-        element2node.put(method, methodNode);
+        referencedNodes.add(node);
+        element2node.put(method, node);
     }
 
 
     void addField(final PsiField field) {
-        final FieldNode methodNode = new FieldNode(field);
-        referencedNodes.add(methodNode);
-        element2node.put(field, methodNode);
+        final FieldNode node = new FieldNode(field);
+        referencedNodes.add(node);
+        element2node.put(field, node);
     }
 
 
-    private void processReferencesTo(final PsiClass psiClass, final PsiNamedElement field, final LocalSearchScope localSearchScope) {
-        final Collection<PsiReference> references = ReferencesSearch.search(field, localSearchScope, false).findAll();
+    private void processReferencesTo(final PsiNamedElement element, final LocalSearchScope localSearchScope) {
+        final Collection<PsiReference> references = ReferencesSearch.search(element, localSearchScope, false).findAll();
         for (final PsiReference reference : references) {
             if (!(reference instanceof PsiReferenceExpression)) continue;
 
             final PsiMethod callingMethod = findEnclosingMethod((PsiReferenceExpression) reference, psiClass);
             if (callingMethod == null) continue;
 
-            addLink(callingMethod, field);
+            if (includeMethod(callingMethod)) {
+                LOGGER.warn(">> processReferencesTo " + callingMethod);
+                processReferencesTo(callingMethod, localSearchScope);
+                LOGGER.warn(">> processReferencesTo " + callingMethod);
+                addLink(callingMethod, element);
+            }
         }
     }
+
 
 
     private static PsiMethod findEnclosingMethod(final PsiElement expression, final PsiClass psiClass) {
@@ -85,10 +118,12 @@ public class ClassStructureGraph extends NodeList {
 
 
     private void addLink(final PsiNamedElement from, final PsiNamedElement namedElement) {
-        final Node sourceNode = element2node.get(from);
-        final Node targetNode = element2node.get(namedElement);
+        final Node<?> sourceNode = element2node.get(from);
+        final Node<?> targetNode = element2node.get(namedElement);
 //        System.out.println("sourceNode = " + sourceNode);
 //        System.out.println("targetNode = " + targetNode);
+        LOGGER.warn(sourceNode.toString() + ":" + sourceNode.getClass() + "->" + targetNode.toString() + ":" + targetNode.getClass());
+
         sourceNode.addReferencedNode(targetNode);
         targetNode.incReferenceCount();
     }
@@ -105,7 +140,7 @@ public class ClassStructureGraph extends NodeList {
 
 
         for (SmallGraph smallGraph : smallGraphs) {
-            final LinkedList<Node> path = new LinkedList<Node>();
+            final ArrayList<Node<?>> path = new ArrayList<>();
             panel.add(smallGraph.ui(path));
         }
 //        panel.add(Box.createVerticalGlue());
@@ -125,16 +160,16 @@ public class ClassStructureGraph extends NodeList {
 
     private void scanForRecursions() {
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
-        visitedNodes = new ArrayList<Node>();
-        for (Node node : rootNodes) {
-            node.scanForRecursions(new LinkedList<Node>());
+        visitedNodes = new ArrayList<>();
+        for (Node<?> node : rootNodes) {
+            node.scanForRecursions(new LinkedList<>());
         }
     }
 
 
     private void scanForRootNodes() {
         LOGGER.debug("==== COLLECTING ROOT NODES");
-        for (Node node : referencedNodes) {
+        for (Node<?> node : referencedNodes) {
             if (node.isRoot()) {
                 LOGGER.debug("ADDED ROOT NODE " + node);
                 rootNodes.add(node);
@@ -145,29 +180,26 @@ public class ClassStructureGraph extends NodeList {
     private void scanForGraphs() {
         LOGGER.debug("==== SCANNING GRAPHS");
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
-        visitedNodes = new ArrayList<Node>();
+        visitedNodes = new ArrayList<>();
 
         // assigned owners
         if (visitedNodes2 != null) visitedNodes2.clear(); // TODO: rethink
-        visitedNodes2 = new ArrayList<Node>();
+        visitedNodes2 = new ArrayList<>();
 
-        for (Node rootNode : rootNodes) {
+        for (Node<?> rootNode : rootNodes) {
             final SmallGraph owner = findOwnerGraph(rootNode);
             LOGGER.debug("Setting owner " + owner + " to root node " + rootNode);
             owner.addRootNode(rootNode);
-            rootNode.assignOwner(visitedNodes2, owner, 0);
+            rootNode.assignOwner(owner, visitedNodes2, 0);
         }
     }
 
 
     /**
      * ... every node belongs to some SmallGraph
-     *
-     * @param rootNode
-     * @return
      */
-    private SmallGraph findOwnerGraph(Node rootNode) {
-        LOGGER.debug("LOOKING FOR OWNER GRAPH OF ROOT NODE " + rootNode);
+    private SmallGraph findOwnerGraph(Node<?> rootNode) {
+        LOGGER.info("LOOKING FOR OWNER GRAPH OF ROOT NODE " + rootNode);
         final SmallGraph graph = rootNode.findOwnerGraph(visitedNodes);
         if (graph != null) return graph;
 
@@ -176,4 +208,11 @@ public class ClassStructureGraph extends NodeList {
         smallGraphs.add(newSmallGraph);
         return newSmallGraph;
     }
+
+
+    private boolean includeMethod(PsiMethod method) {
+        return !method.isConstructor() || includeConstructors;
+//        return true;
+    }
+
 }

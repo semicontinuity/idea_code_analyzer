@@ -27,7 +27,7 @@ public class SmallGraph /*extends NodeList */{
     }
 
 
-    protected JComponent ui(LinkedList<Node> path) {
+    protected JComponent ui(List<Node<?>> path) {
         if (visitedNodes != null) visitedNodes.clear(); // TODO: rethink
         visitedNodes = new ArrayList<Node>();
 
@@ -63,7 +63,7 @@ public class SmallGraph /*extends NodeList */{
 //            classStructureGraph.layout();
             final SmallGraph newGraph = new SmallGraph(auxilliaryNodes);
 //            classStructureGraph.smallGraphs.add(newGraph);
-            final LinkedList<Node> newpath = new LinkedList<Node>();
+            final List<Node<?>> newpath = new ArrayList<>();
             horizontalBox.add(newGraph.ui(newpath));
         }
 

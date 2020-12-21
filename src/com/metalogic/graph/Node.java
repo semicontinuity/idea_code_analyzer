@@ -38,10 +38,10 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     }
 
 
-    protected abstract JComponent ui(final SmallGraph graphParent, LinkedList<Node> path);
+    protected abstract JComponent ui(final SmallGraph graphParent, List<Node<?>> path);
 
 
-    JComponent box(SmallGraph graphParent, LinkedList<Node> path, ElementButton myButton) {
+    JComponent box(SmallGraph graphParent, List<Node<?>> path, ElementButton myButton) {
         final Box horizontalBox = Box.createHorizontalBox();
         horizontalBox.add(myButton);
 
@@ -59,7 +59,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
                 if (!path.contains(node)) {
                     verticalBox.add(node.ui(graphParent, path));
                 }
-                path.removeLast();
+                path.remove(path.size() - 1);
             }
             horizontalBox.add(verticalBox);
         }
@@ -69,8 +69,7 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
     }
 
 
-    protected void assignOwner(
-            List<Node> visitedNodes2, SmallGraph owner, int depth) {
+    protected void assignOwner(SmallGraph owner, List<Node<?>> visitedNodes2, int depth) {
         LOGGER.debug("Going to assign owner " + owner + " (recursively) to " + this);
         if (visitedNodes2.contains(this)) {
             LOGGER.debug("Owner already assigned");
@@ -91,12 +90,12 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
             return;
         }
 
-        for (Node referenced : getReferencedNodes()) {
-            referenced.assignOwner(visitedNodes2, owner, depth + 1);
+        for (Node<?> referenced : getReferencedNodes()) {
+            referenced.assignOwner(owner, visitedNodes2, depth + 1);
         }
     }
 
-    protected SmallGraph findOwnerGraph(final List<Node> visitedNodes) {
+    protected SmallGraph findOwnerGraph(final List<Node<?>> visitedNodes) {
         if (visitedNodes.contains(this)) {
             LOGGER.debug("We already visited " + this);
             return owner;
