@@ -193,8 +193,13 @@ public abstract class Node<E extends PsiNamedElement> extends NodeList {
         return recursiveIncomingArcsCount;
     }
 
-    public void select() {
-        button.select();
+    public void select(int kind) {
+        button.select(kind);
+    }
+
+    public void deselect() {
+        LOGGER.warn("DESELECT NODE " + this);
+        button.deselect();
     }
 }
 

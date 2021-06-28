@@ -5,12 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.intellij.openapi.diagnostic.Logger;
 import one.util.streamex.EntryStream;
 
 public class DisjointSetUnion<E> {
-    public static final Logger LOGGER = Logger.getInstance(DisjointSetUnion.class);
-
     private final Map<E, E> parents = new HashMap<>();
 
     public void add(E e) {

@@ -12,16 +12,26 @@ import javax.swing.JComponent;
 import javax.swing.border.BevelBorder;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.search.LocalSearchScope;
 
 public class SmallGraph /*extends NodeList */{
     public static final Logger LOGGER = Logger.getInstance(SmallGraph.class);
 
-    public SmallGraph () { }
+    public SmallGraph () {
+        classStructureGraph = null;
+    }
 
-    public SmallGraph (Collection<? extends Node<?>> rootNodes) { this.rootNodes = new HashSet<>(rootNodes); }
+    public SmallGraph (
+            Collection<? extends Node<?>> rootNodes,
+            ClassStructureGraph classStructureGraph)
+    {
+        this.rootNodes = new HashSet<>(rootNodes);
+        this.classStructureGraph = classStructureGraph;
+    }
 
 
     private Set<Node<?>> rootNodes = new HashSet<>();
+    private final ClassStructureGraph classStructureGraph;
     private Set<Node<?>> auxilliaryNodes = new HashSet<>();
 
     protected void addRootNode(Node<?> node) {
@@ -46,7 +56,28 @@ public class SmallGraph /*extends NodeList */{
                 LOGGER.warn("Adding ui for root node " + rootNode);
                 verticalBox.add(rootNode.ui(this, path, node -> {
                     LOGGER.warn("*** ACTION " + node);
-                    node.select();
+                    classStructureGraph.deselectNodes();
+
+                    node.select(0);
+                    classStructureGraph.selectedNodes.add(node);
+
+                    classStructureGraph.processReferencesTo(node.psiElement, new LocalSearchScope(classStructureGraph.psiClass), psiMethod -> {
+                        LOGGER.warn("*** METHOD: " + psiMethod);
+                        Node<?> refNode = classStructureGraph.element2node.get(psiMethod);
+                        if (refNode != null) {
+                            refNode.select(-1);
+                            classStructureGraph.selectedNodes.add(refNode);
+                        }
+                    });
+
+                    classStructureGraph.processReferencesFrom(node.psiElement, psiField -> {
+                        LOGGER.warn("*** FIELD: " + psiField);
+                        Node<?> refNode = classStructureGraph.element2node.get(psiField);
+                        if (refNode != null) {
+                            refNode.select(1);
+                            classStructureGraph.selectedNodes.add(refNode);
+                        }
+                    });
                 }));
             }
         }
@@ -73,7 +104,7 @@ public class SmallGraph /*extends NodeList */{
 //            }
 //            classStructureGraph.layout();
             LOGGER.warn("Adding layer for remaining nodes");
-            final SmallGraph newGraph = new SmallGraph(auxilliaryNodes);
+            final SmallGraph newGraph = new SmallGraph(auxilliaryNodes, classStructureGraph);
 //            classStructureGraph.smallGraphs.add(newGraph);
             final List<Node<?>> newpath = new ArrayList<>();
             horizontalBox.add(newGraph.ui(newpath, visitedNodes));

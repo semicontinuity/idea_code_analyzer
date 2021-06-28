@@ -35,6 +35,8 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
+
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -55,6 +57,7 @@ public class CodeAnalysisToolsPlugin implements ProjectComponent {
     private PsiClass lastPsiClass;
 
     private boolean includeConstructors;
+    private ClassStructureGraph graph;
 
 
     @SuppressWarnings({"HardCodedStringLiteral", "StringConcatenation", "MagicCharacter", "ObjectToString"})
@@ -105,6 +108,7 @@ public class CodeAnalysisToolsPlugin implements ProjectComponent {
         JCheckBox constructors = new JCheckBox("constructors");
 
         final JPanel panel = new JPanel(new BorderLayout());
+        panel.add(resetButton(pluginPanel), BorderLayout.EAST);
         panel.add(repaintButton(pluginPanel, constructors), BorderLayout.CENTER);
         panel.add(constructors, BorderLayout.WEST);
         return panel;
@@ -116,14 +120,27 @@ public class CodeAnalysisToolsPlugin implements ProjectComponent {
         //noinspection HardcodedFileSeparator
         button.setIcon(new ImageIcon(ClassStructureGraph.class.getResource("/actions/refresh.png")));
         button.addActionListener(
-                new ActionListener() {
-                    public void actionPerformed(final ActionEvent e) {
-                        includeConstructors = constructors.isSelected();
-                        updateUI();
-                        panel.invalidate();   // TODO: make it work...
-                        panel.validate();   // TODO: make it work...
-                    }
+                e -> {
+                    includeConstructors = constructors.isSelected();
+                    updateUI();
+                    panel.invalidate();   // TODO: make it work...
+                    panel.validate();   // TODO: make it work...
                 });
+        return button;
+    }
+
+    private JButton resetButton(final JPanel panel) {
+        final JButton button = new JButton("Reset");
+
+        button.addActionListener(
+                e -> SwingUtilities.invokeLater(() -> {
+
+                    LOGGER.warn("DESELECT");
+
+                    graph.deselectNodes();
+                    panel.invalidate();   // TODO: make it work...
+                    panel.validate();   // TODO: make it work...
+                }));
         return button;
     }
 
@@ -168,7 +185,7 @@ public class CodeAnalysisToolsPlugin implements ProjectComponent {
         if (psiClass.equals(lastPsiClass)) return;  // TODO: we can track notifications from EditorManager
         lastPsiClass = psiClass;
 
-        final ClassStructureGraph graph = new ClassStructureGraph(psiClass, includeConstructors);
+        graph = new ClassStructureGraph(psiClass, includeConstructors);
 
         myContentPanel.removeAll();
         myContentPanel.add(graph.ui(), BorderLayout.CENTER);
